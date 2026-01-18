@@ -1,8 +1,8 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextRequest, NextResponse } from 'next/server';
 import { MongoClient } from 'mongodb';
 import AWS from 'aws-sdk';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export async function GET(req: NextRequest) {
   const {
     MONGODB_URI,
     AWS_ACCESS_KEY_ID,
@@ -11,6 +11,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     AWS_S3_REGION
   } = process.env;
 
+  if (!MONGODB_URI || !AWS_ACCESS_KEY_ID || !AWS_SECRET_ACCESS_KEY || !AWS_S3_BUCKET_NAME || !AWS_S3_REGION) {
+    return NextResponse.json({ message: 'Missing environment variables' }, { status: 500 });
+  }
+
+  // AWS S3 config
   AWS.config.update({
     accessKeyId: AWS_ACCESS_KEY_ID,
     secretAccessKey: AWS_SECRET_ACCESS_KEY,
@@ -18,11 +23,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   });
 
   const s3 = new AWS.S3();
-  const client = new MongoClient(MONGODB_URI as string);
-  await client.connect();
-  const db = client.db('yourDatabaseName'); // 데이터베이스 이름 지정 필요
+  const client = new MongoClient(MONGODB_URI);
 
   try {
+    await client.connect();
+    const db = client.db('yourDatabaseName'); // DB 이름 수정 필요
     const images = await db.collection('images').find().toArray();
 
     const imageData = await Promise.all(images.map(async image => {
@@ -42,10 +47,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       };
     }));
 
-    res.status(200).json(imageData);
+    return NextResponse.json(imageData);
   } catch (error) {
     console.error('Failed to retrieve data', error);
-    res.status(500).json({ message: 'Failed to retrieve data' });
+    return NextResponse.json({ message: 'Failed to retrieve data' }, { status: 500 });
   } finally {
     await client.close();
   }

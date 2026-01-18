@@ -308,11 +308,16 @@ def generate_mask():
             return jsonify({"error": f"Failed to get output directory: {str(e)}"}), 500
 
         # 이미지 로드
+        processed_image_path = os.path.abspath(processed_image_path) 
         imageA = cv2.imread(processed_image_path)  # 조명 합성된 이미지
         imageB = read_image_from_url(original_image_path)  # 원본 이미지 (URL에서 직접 로드)
 
         if imageA is None or imageB is None:
             return jsonify({"error": "Failed to load one or more images"}), 400
+
+        # imageA의 크기에 맞춰 imageB를 리사이즈합니다.
+        if imageA.shape[:2] != imageB.shape[:2]:
+            imageB = cv2.resize(imageB, (imageA.shape[1], imageA.shape[0]))
 
         # 그레이스케일 변환
         grayA = cv2.cvtColor(imageA, cv2.COLOR_BGR2GRAY)

@@ -1,72 +1,63 @@
+export const runtime = 'nodejs';
+
 import { NextRequest, NextResponse } from 'next/server';
-import { uploadFileToS3 } from '@/lib/s3Upload';
+import { Readable } from 'stream';
+import { uploadStreamToS3 } from '@/lib/s3Upload';
 import { saveImageToDB, findImageByName } from '@/lib/saveImageToDB';
 
 export async function POST(req: NextRequest) {
   try {
-    const data = await req.formData();
-    const file = data.get('file') as File;
+    // 1. 요청 데이터 확인
+    const formData = await req.formData();
+    const file = formData.get('file') as File | null;
 
     if (!file) {
       return NextResponse.json({ error: '파일이 없습니다.' }, { status: 400 });
     }
 
-    // DB에서 동일한 이름 파일 조회
-    let existingImage;
-    try {
-      existingImage = await findImageByName(file.name);
-    } catch (dbErr) {
-      console.error('DB 조회 실패:', dbErr);
+    // 2. 중복 이미지 체크
+    const existingImage = await findImageByName(file.name);
+    if (existingImage) {
       return NextResponse.json(
-        { error: 'DB 조회 중 오류 발생', details: dbErr instanceof Error ? dbErr.message : 'Unknown error' },
-        { status: 500 }
+        { message: '이미 업로드된 파일입니다.', image: existingImage },
+        { status: 200 }
       );
     }
 
-    if (existingImage) {
-      return NextResponse.json({ message: '이미 업로드된 파일입니다.', image: existingImage }, { status: 200 });
-    }
-
-    // Buffer 변환
+    // 3. 파일을 Buffer로 변환 (Reader보다 안정적인 방식)
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // S3 업로드
-    let s3Url;
-    try {
-      s3Url = await uploadFileToS3({
-        buffer,
-        originalname: file.name,
-        mimetype: file.type,
-      });
-    } catch (s3Err) {
-      console.error('S3 업로드 실패:', s3Err);
-      return NextResponse.json(
-        { error: 'S3 업로드 중 오류 발생', details: s3Err instanceof Error ? s3Err.message : 'Unknown error' },
-        { status: 500 }
-      );
-    }
+    // 4. S3 업로드 (Node Stream으로 변환하여 전달)
+    // uploadStreamToS3 함수가 Readable 스트림을 받으므로 Readable.from을 사용합니다.
+    const s3Url = await uploadStreamToS3({
+      stream: Readable.from(buffer),
+      fileName: file.name,
+      contentType: file.type,
+    });
 
-    // DB 저장
-    let savedImage;
-    try {
-      savedImage = await saveImageToDB({
-        image_name: file.name,
-        s3_url: s3Url,
-      });
-    } catch (dbSaveErr) {
-      console.error('DB 저장 실패:', dbSaveErr);
-      return NextResponse.json(
-        { error: 'DB 저장 중 오류 발생', details: dbSaveErr instanceof Error ? dbSaveErr.message : 'Unknown error' },
-        { status: 500 }
-      );
-    }
+    // 5. DB 저장
+    const savedImage = await saveImageToDB({
+      image_name: file.name,
+      s3_url: s3Url,
+    });
 
-    return NextResponse.json({ message: '이미지 업로드 성공', image: savedImage }, { status: 200 });
-
+    return NextResponse.json(
+      { message: '이미지 업로드 성공', image: savedImage },
+      { status: 200 }
+    );
   } catch (err) {
-    console.error('예상치 못한 서버 오류:', err);
-    const message = err instanceof Error ? err.stack || err.message : 'Unknown error';
-    return NextResponse.json({ error: '서버 처리 중 오류 발생', details: message }, { status: 500 });
+    // 서버 터미널에 상세 에러 출력 (디버깅용)
+    console.error('--- 서버 업로드 상세 오류 시작 ---');
+    console.error(err);
+    console.error('--- 서버 업로드 상세 오류 끝 ---');
+
+    return NextResponse.json(
+      {
+        error: '서버 처리 중 오류 발생',
+        details: err instanceof Error ? err.message : 'Unknown error',
+      },
+      { status: 500 }
+    );
   }
 }

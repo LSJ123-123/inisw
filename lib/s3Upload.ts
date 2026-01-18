@@ -1,37 +1,41 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { v4 as uuidv4 } from 'uuid';
+import { S3Client } from '@aws-sdk/client-s3';
+import { Upload } from '@aws-sdk/lib-storage';
+import { Readable } from 'stream';
 
-const s3Client = new S3Client({
-    region: process.env.AWS_S3_REGION,
-    credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-    },
+const s3 = new S3Client({
+  region: process.env.AWS_REGION!,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
 });
 
-interface UploadFile {
-    buffer: Buffer;
-    originalname: string;
-    mimetype: string;
+interface UploadStreamParams {
+  stream: Readable;
+  fileName: string;
+  contentType: string;
 }
 
-export const uploadFileToS3 = async (file: UploadFile): Promise<string> => {
-    const uniqueFileName = `lumterior/${uuidv4()}-${file.originalname}`;
+export async function uploadStreamToS3({
+  stream,
+  fileName,
+  contentType,
+}: UploadStreamParams): Promise<string> {
+  const upload = new Upload({
+    client: s3,
+    params: {
+      Bucket: process.env.AWS_S3_BUCKET!,
+      Key: `images/${Date.now()}-${fileName}`,
+      Body: stream,
+      ContentType: contentType,
+    },
+  });
 
-    const params = {
-        Bucket: process.env.AWS_S3_BUCKET_NAME!,
-        Key: uniqueFileName,
-        Body: file.buffer,
-        ContentType: file.mimetype,
-    };
+  const result = await upload.done();
 
-    try {
-        const command = new PutObjectCommand(params);
-        await s3Client.send(command);
+  if (!result.Location) {
+    throw new Error('S3 업로드 실패: Location 없음');
+  }
 
-        return `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_S3_REGION}.amazonaws.com/${uniqueFileName}`;
-    } catch (error) {
-        console.error('S3 업로드 오류:', error);
-        throw error;
-    }
-};
+  return result.Location;
+}
