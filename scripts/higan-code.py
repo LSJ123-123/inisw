@@ -12,7 +12,7 @@ from sklearn.cluster import DBSCAN
 current_dir = os.getcwd()
 print(f"Current directory: {current_dir}")
 
-os.system(f"pip install -r requirements.txt")
+os.system(f"pip install -r scripts/requirements.txt")
 
 # Higan 저장소 클론 및 파일 설정
 CODE_DIR = 'higan'
@@ -115,7 +115,7 @@ import certifi
 # MongoDB 연결 및 이미지 정보 가져오기
 def connect_to_mongodb():
     # 상대 경로를 사용하여 .env.local 파일의 경로를 지정
-    dotenv_path = os.path.join(os.path.dirname(__file__), r'..\..', '.env.local')
+    dotenv_path = os.path.join(os.path.dirname(__file__), r'..', '.env.local')
     load_dotenv(dotenv_path)
     print(dotenv_path)
     try:
