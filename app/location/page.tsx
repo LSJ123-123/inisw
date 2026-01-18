@@ -157,14 +157,16 @@ const LocationPage = () => {
 
             <div className="flex flex-grow justify-center items-center mt-10">
                 <div className="bg-white rounded-lg shadow-md p-6 text-center w-[320px] relative">
-                    {images.map((imageData, index) => (
-                        <div key={index} className="relative w-full h-[300px] mb-4">
+
+                    {latestImage && (
+                        <div className="relative w-full h-[300px] mb-4">
                             <img
-                                src={imageData.s3_url || "/placeholder.jpg"}
-                                alt={`Uploaded ${imageData.image_name}`}
+                                src={latestImage.s3_url || "/placeholder.jpg"}
+                                alt={`Uploaded ${latestImage.image_name}`}
                                 className="w-full h-full object-cover rounded-md"
                             />
-                            {imageData.mask_images && imageData.mask_images.map((maskImage: any) => (
+
+                            {latestImage.mask_images?.map((maskImage: any) => (
                                 <img
                                     key={maskImage.cluster_id}
                                     src="/images/loc.png"
@@ -180,7 +182,8 @@ const LocationPage = () => {
                                 />
                             ))}
                         </div>
-                    ))}
+                    )}
+
                     <div className="flex items-center justify-center mt-5 space-x-2">
                         <p className="text-gray-800 font-custom">위치를 선택하세요</p>
                         <img
