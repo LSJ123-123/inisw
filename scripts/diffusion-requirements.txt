@@ -1,11 +1,3 @@
-# diffusion부분을 git clone 해온 후에 diffusion/scripts/inference.py 안에 model.cuda()로 되어있는 부분을
-# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# model.to(device)
-# 로 바꿔줘야한다. 안 그러면 cpu만 있는 컴퓨터에서는 오류가 발생한다.
-# 추가로
-# c = model.get_learned_conditioning(ref_tensor.to(torch.float16)) 인 부분을
-# c = model.get_learned_conditioning(ref_tensor.to(torch.float32)) 로 바꿔줘야한다.
-# 왜냐하면 PyTorch의 CPU 모드는 float32 연산만 지원하기 때문이다.
 absl-py==2.1.0
 aiohappyeyeballs==2.4.4
 aiohttp==3.10.11
@@ -29,11 +21,14 @@ bleach==6.1.0
 blinker==1.8.2
 boto3==1.36.26
 botocore==1.36.26
-Brotli @ file:///C:/b/abs_3d36mno480/croot/brotli-split_1714483178642/work
+# Brotli @ file:///C:/b/abs_3d36mno480/croot/brotli-split_1714483178642/work
+Brotli
 cachetools==5.5.1
-certifi @ file:///C:/b/abs_1fw_exq1si/croot/certifi_1725551736618/work/certifi
+# certifi @ file:///C:/b/abs_1fw_exq1si/croot/certifi_1725551736618/work/certifi
+certifi
 cffi==1.17.1
-charset-normalizer @ file:///croot/charset-normalizer_1721748349566/work
+# charset-normalizer @ file:///croot/charset-normalizer_1721748349566/work
+charset-normalizer
 click==8.1.8
 -e git+https://github.com/openai/CLIP.git@dcba3cb2e2827b402d2701e7e1c7d9fed8a20ef1#egg=clip
 colorama==0.4.6
@@ -63,7 +58,8 @@ h11==0.14.0
 httpcore==1.0.7
 httpx==0.28.1
 huggingface-hub==0.28.1
-idna @ file:///C:/b/abs_aad84bnnw5/croot/idna_1714398896795/work
+# idna @ file:///C:/b/abs_aad84bnnw5/croot/idna_1714398896795/work
+idna
 imageio==2.9.0
 imageio-ffmpeg==0.4.2
 imgaug==0.2.6
@@ -103,7 +99,8 @@ matplotlib-inline==0.1.7
 mdurl==0.1.2
 mistune==3.1.1
 mkl-fft==1.3.1
-mkl-random @ file:///C:/ci/mkl_random_1626186184278/work
+# mkl-random @ file:///C:/ci/mkl_random_1626186184278/work
+mkl-random
 mkl-service==2.4.0
 multidict==6.1.0
 narwhals==1.25.2
@@ -122,12 +119,12 @@ opencv-python-headless==4.11.0.86
 overrides==7.7.0
 packaging==24.2
 # Editable install with no version control (Paint-by-Example==0.0.1)
--e c:\stable-diffusion
 pandas==2.0.3
 pandocfilters==1.5.1
 parso==0.8.4
 pickleshare==0.7.5
-pillow @ file:///C:/b/abs_32o8er3uqp/croot/pillow_1721059447598/work
+# pillow @ file:///C:/b/abs_32o8er3uqp/croot/pillow_1721059447598/work
+pillow
 pkgutil-resolve-name==1.3.10
 platformdirs==4.3.6
 prometheus-client==0.21.1
@@ -144,7 +141,8 @@ pycparser==2.22
 pydeck==0.9.1
 pyDeprecate==0.3.1
 pygments==2.19.1
-PySocks @ file:///C:/ci/pysocks_1605287845585/work
+# PySocks @ file:///C:/ci/pysocks_1605287845585/work
+PySocks
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
 python-json-logger==3.2.1
@@ -157,7 +155,8 @@ PyYAML==6.0.2
 pyzmq==26.2.1
 referencing==0.35.1
 regex==2024.11.6
-requests @ file:///C:/b/abs_9frifg92q2/croot/requests_1721410901096/work
+# requests @ file:///C:/b/abs_9frifg92q2/croot/requests_1721410901096/work
+requests
 requests-oauthlib==2.0.0
 rfc3339-validator==0.1.4
 rfc3986-validator==0.1.1
@@ -169,7 +168,8 @@ safetensors==0.5.2
 scikit-image==0.20.0
 scipy==1.9.1
 Send2Trash==1.8.3
-six @ file:///tmp/build/80754af9/six_1644875935023/work
+# six @ file:///tmp/build/80754af9/six_1644875935023/work
+six
 smmap==5.0.2
 sniffio==1.3.1
 soupsieve==2.6
@@ -195,7 +195,8 @@ tqdm==4.67.1
 traitlets==5.14.3
 transformers==4.19.2
 types-python-dateutil==2.9.0.20241206
-typing-extensions @ file:///C:/b/abs_0as9mdbkfl/croot/typing_extensions_1715268906610/work
+# typing-extensions @ file:///C:/b/abs_0as9mdbkfl/croot/typing_extensions_1715268906610/work
+typing-extensions
 tzdata==2025.1
 uri-template==1.3.0
 urllib3==1.26.20
@@ -207,6 +208,7 @@ webencodings==0.5.1
 websocket-client==1.8.0
 werkzeug==3.0.6
 widgetsnbextension==4.0.13
-win-inet-pton @ file:///C:/ci/win_inet_pton_1605306167264/work
+# win-inet-pton @ file:///C:/ci/win_inet_pton_1605306167264/work
+win-inet-pton
 yarl==1.15.2
 zipp==3.20.2

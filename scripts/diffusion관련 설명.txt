@@ -1,0 +1,9 @@
+diffusion부분을 git clone 해온 후에 diffusion/scripts/inference.py 안에 model.cuda()로 되어있는 부분을
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model.to(device) 로 바꿔줘야한다. 
+안 그러면 cpu만 있는 컴퓨터에서는 오류가 발생한다.
+
+추가로
+c = model.get_learned_conditioning(ref_tensor.to(torch.float16)) 인 부분을
+c = model.get_learned_conditioning(ref_tensor.to(torch.float32)) 로 바꿔줘야한다.
+왜냐하면 PyTorch의 CPU 모드는 float32 연산만 지원하기 때문이다.

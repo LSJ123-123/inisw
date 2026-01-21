@@ -45,10 +45,12 @@ const LocationPage = () => {
         referenceUrl: string,
         outputDir: string
     ) => {
-        const response = await fetch('http://localhost:8080/process_image', {
+        // const response = await fetch('http://localhost:8080/process_image', { 로컬에서 실행할 시
+        const response = await fetch('https://unrebated-ambroise-unmirrored.ngrok-free.dev/process_image', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': '69420',
             },
             body: JSON.stringify({
                 image_path: imageUrl,
@@ -109,10 +111,12 @@ const LocationPage = () => {
 
             // Generate masks for each processed image
             const maskPromises = results.map((result, index) =>
-                fetch('http://localhost:8080/generate_mask', {
+                // fetch('http://localhost:8080/generate_mask', { 로컬에서 실행할 시
+            fetch('http://https://unrebated-ambroise-unmirrored.ngrok-free.dev/generate_mask', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'ngrok-skip-browser-warning': '69420',
                     },
                     body: JSON.stringify({
                         processed_image_path: result.processed_image_path,

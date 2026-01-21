@@ -71,7 +71,7 @@ aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
 aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
 aws_s3_region = os.getenv('AWS_S3_REGION')
 bucket_name = os.getenv('AWS_S3_BUCKET_NAME')
-ngrok_token = os.getenv('NGROK_AUTH_TOKEN')
+ngrok_token = os.getenv('NGROK_AUTH_TOKEN_diffusion')
 
 # 환경 변수 로드 확인
 print(f"AWS S3 Region: {aws_s3_region}")
