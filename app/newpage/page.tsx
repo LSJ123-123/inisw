@@ -34,7 +34,8 @@ const NewPage = () => {
     const handleViewRecommendation = async () => {
         try {
             // Step 1: Flask 서버 호출
-            const flaskResponse = await fetch("http://localhost:8000/run-higan", {
+            // const flaskResponse = await fetch("http://localhost:8000/run-higan", { 로컬에서 실행할 시
+            const flaskResponse = await fetch("https://nautically-inflexed-sharron.ngrok-free.dev/run-higan", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
             });

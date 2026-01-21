@@ -12,6 +12,55 @@ import numpy as np
 import boto3
 from botocore.exceptions import NoCredentialsError, ClientError
 from dotenv import load_dotenv
+from pyngrok import ngrok
+
+# 초기 환경 설정
+current_dir = os.getcwd()
+print(f"Current directory: {current_dir}")
+
+os.system(f"pip install -r scripts/diffusion-requirements.txt")
+
+# diffusion 저장소 클론 및 파일 설정
+CODE_DIR = 'diffusion'
+if not os.path.exists(CODE_DIR):
+    os.system(f'git clone https://github.com/Fantasy-Studio/Paint-by-Example {CODE_DIR}')
+
+os.chdir(CODE_DIR)
+
+# 필요한 디렉토리 생성
+pretrain_dir = 'checkpoints'
+os.makedirs(pretrain_dir, exist_ok=True)
+
+def download_file_if_not_exists(url, save_name, target_dir):
+    save_path = os.path.join(target_dir, save_name)
+    
+    # 파일 존재 여부 확인
+    if os.path.exists(save_path):
+        # 파일이 있지만 용량이 0이거나 너무 작은 경우(다운로드 실패 흔적)를 대비해 체크하면 더 좋습니다.
+        if os.path.getsize(save_path) > 1000: # 최소 1KB 이상인지 확인
+            print(f"{save_name} 파일이 이미 존재하여 다운로드를 생략합니다.")
+            return
+        else:
+            print(f"기존 파일이 손상된 것으로 보여 다시 다운로드합니다.")
+
+    print(f"{save_name} 다운로드 시작...")
+    try:
+        with requests.get(url, stream=True) as r:
+            r.raise_for_status()
+            with open(save_path, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
+        print(f"{save_name} 다운로드 완료!")
+    except Exception as e:
+        print(f"{save_name} 다운로드 중 오류 발생: {e}")
+
+model_url = "https://huggingface.co/Fantasy-Studio/Paint-by-Example/resolve/main/model.ckpt"
+download_file_if_not_exists(model_url, "model.ckpt", pretrain_dir)
+
+print("모든 파일 다운로드 완료!")
+
+os.chdir('..') 
+print(f"현재 위치: {os.getcwd()}")
 
 app = Flask(__name__)
 CORS(app)
@@ -22,6 +71,7 @@ aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
 aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
 aws_s3_region = os.getenv('AWS_S3_REGION')
 bucket_name = os.getenv('AWS_S3_BUCKET_NAME')
+ngrok_token = os.getenv('NGROK_AUTH_TOKEN')
 
 # 환경 변수 로드 확인
 print(f"AWS S3 Region: {aws_s3_region}")
@@ -379,6 +429,29 @@ def generate_mask():
         print(f"Error in generate_mask: {str(e)}")  # 오류 로그 추가
         return jsonify({"error": f"Failed to generate mask: {str(e)}"}), 500
 
+# 로컬에서 실행할 때
+# if __name__ == "__main__":
+#     app.run(host="0.0.0.0", port=8080, debug=True)
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080, debug=True)
+if __name__ == '__main__':
+    # ngrok 인증 및 터널 생성
+    PORT = 8080
+    if ngrok_token:
+        try:
+            # 토큰 설정
+            ngrok.set_auth_token(ngrok_token)
+            # 터널 열기
+            public_url = ngrok.connect(PORT).public_url
+            print(f"\n" + "="*50)
+            print(f" * ngrok 터널이 활성화되었습니다!")
+            print(f" * Public URL: {public_url}")
+            print(f" * 위 주소를 프론트엔드의 API 엔드포인트로 사용하세요.")
+            print("="*50 + "\n")
+        except Exception as e:
+            print(f"ngrok 연결 실패: {e}")
+    else:
+        print("경고: NGROK_AUTH_TOKEN이 설정되지 않았습니다. 로컬에서만 접속 가능합니다.")
+
+    # Flask 실행 (debug=True 사용 시 use_reloader=False 권장)
+    # use_reloader=False를 안 하면 ngrok 터널이 두 번 실행되려다 에러가 날 수 있습니다.
+    app.run(host='0.0.0.0', port=PORT, debug=True, use_reloader=False)

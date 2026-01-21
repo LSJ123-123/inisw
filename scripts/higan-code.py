@@ -12,7 +12,7 @@ from sklearn.cluster import DBSCAN
 current_dir = os.getcwd()
 print(f"Current directory: {current_dir}")
 
-os.system(f"pip install -r scripts/requirements.txt")
+os.system(f"pip install -r scripts/higan-requirements.txt")
 
 # Higan 저장소 클론 및 파일 설정
 CODE_DIR = 'higan'
