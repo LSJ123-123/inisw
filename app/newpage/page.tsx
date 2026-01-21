@@ -37,7 +37,10 @@ const NewPage = () => {
             // const flaskResponse = await fetch("http://localhost:8000/run-higan", { 로컬에서 실행할 시
             const flaskResponse = await fetch("https://nautically-inflexed-sharron.ngrok-free.dev/run-higan", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { 
+                    "Content-Type": "application/json",
+                    "ngrok-skip-browser-warning": "69420",
+                },
             });
 
             if (!flaskResponse.ok) {
