@@ -1,15 +1,18 @@
-// /app/location/page.tsx
 "use client";
 import { useState, useEffect } from "react";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import { useRouter } from "next/navigation";
 
+// ngrok 주소 설정 (환경 변수 사용)
+const NGROK_URL = process.env.NEXT_PUBLIC_NGROK_URL_diffusion;
+
 const LocationPage = () => {
     const router = useRouter();
     const [images, setImages] = useState<any[]>([]);
     const [latestImage, setLatestImage] = useState<any | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [loadingText, setLoadingText] = useState("데이터를 불러오는 중..."); // 진행 상태 메시지 추가
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -39,6 +42,31 @@ const LocationPage = () => {
         fetchImageData();
     }, []);
 
+    // 서버의 작업 상태를 체크하는 폴링 함수 (새로 추가)
+    const pollTaskStatus = async (taskId: string): Promise<any> => {
+        return new Promise((resolve, reject) => {
+            const interval = setInterval(async () => {
+                try {
+                    const response = await fetch(`${NGROK_URL}/task_status/${taskId}`, {
+                        headers: { 'ngrok-skip-browser-warning': '69420' }
+                    });
+                    const data = await response.json();
+
+                    if (data.status === 'completed') {
+                        clearInterval(interval);
+                        resolve(data.result);
+                    } else if (data.status === 'failed') {
+                        clearInterval(interval);
+                        reject(new Error(data.error || 'Task failed'));
+                    }
+                } catch (err) {
+                    clearInterval(interval);
+                    reject(err);
+                }
+            }, 3000); // 3초 간격
+        });
+    };
+
     const processDiffusionImage = async (
         imageUrl: string,
         maskUrl: string,
@@ -46,7 +74,7 @@ const LocationPage = () => {
         outputDir: string
     ) => {
         // const response = await fetch('http://localhost:8080/process_image', { 로컬에서 실행할 시
-        const response = await fetch('https://unrebated-ambroise-unmirrored.ngrok-free.dev/process_image', {
+        const response = await fetch(`${NGROK_URL}/process_image`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -66,11 +94,14 @@ const LocationPage = () => {
             throw new Error(`Failed to process image with ${referenceUrl}`);
         }
 
-        return await response.json();
+        // 비동기 task_id를 받아 폴링 시작
+        const { task_id } = await response.json();
+        return await pollTaskStatus(task_id);
     };
 
     const handleIconClick = async (clusterId: number) => {
         setIsLoading(true);
+        setLoadingText("AI 조명 합성 중입니다..."); // 사용자 안내 메시지
         try {
             if (!latestImage) {
                 throw new Error('No latest image data available');
@@ -97,22 +128,26 @@ const LocationPage = () => {
                 console.log(`Lamp URL ${index + 1}:`, lampUrl);
             });
 
-            const processPromises = lampUrls.map((lampUrl, index) =>
-                processDiffusionImage(
+            // 백엔드가 한 번에 하나씩 처리하는 구조이므로 for-of 문으로 순차 처리 (권장)
+            const results = [];
+            for (let i = 0; i < lampUrls.length; i++) {
+                setLoadingText(`조명 ${i + 1} 합성 진행 중...`);
+                const res = await processDiffusionImage(
                     latestImage.s3_url,
                     maskImageUrl,
-                    lampUrl,
-                    `lamp${index + 1}_results`
-                )
-            );
+                    lampUrls[i],
+                    `lamp${i + 1}_results`
+                );
+                results.push(res);
+            }
 
-            const results = await Promise.all(processPromises);
-            console.log('Response from processDiffusionImage:', results); // 응답 내용 출력
+            console.log('Response from processDiffusionImage (after polling):', results); // 응답 내용 출력
 
             // Generate masks for each processed image
-            const maskPromises = results.map((result, index) =>
+            setLoadingText("마스크를 생성하고 있습니다...");
+            const maskPromises = results.map(async (result, index) => {
                 // fetch('http://localhost:8080/generate_mask', { 로컬에서 실행할 시
-            fetch('http://https://unrebated-ambroise-unmirrored.ngrok-free.dev/generate_mask', {
+                const response = await fetch(`${NGROK_URL}/generate_mask`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -123,8 +158,13 @@ const LocationPage = () => {
                         original_image_path: latestImage.s3_url,
                         reference_path: lampUrls[index]
                     }),
-                })
-            );
+                });
+
+                if (!response.ok) throw new Error('Failed to start mask generation');
+                
+                const { task_id } = await response.json();
+                return await pollTaskStatus(task_id);
+            });
 
             await Promise.all(maskPromises);
 
@@ -142,13 +182,14 @@ const LocationPage = () => {
     };
 
     if (isLoading) {
-        return <div className="flex justify-center items-center min-h-screen">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+        return <div className="flex flex-col justify-center items-center min-h-screen bg-black text-white">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white mb-4"></div>
+            <p>{loadingText}</p>
         </div>;
     }
 
     if (error) {
-        return <div className="flex justify-center items-center min-h-screen text-red-600">
+        return <div className="flex justify-center items-center min-h-screen text-red-600 bg-black">
             Error: {error}
         </div>;
     }

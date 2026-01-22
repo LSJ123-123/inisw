@@ -3,19 +3,27 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import subprocess
 import os
+import uuid
 from pyngrok import ngrok
 from dotenv import load_dotenv
+from concurrent.futures import ThreadPoolExecutor
 
 app = Flask(__name__)
 CORS(app)
+
+# --- 비동기 작업 관리 설정 ---
+executor = ThreadPoolExecutor(max_workers=2)
+tasks = {} # 작업 상태를 저장할 딕셔너리
 
 # ngrok 사용을 위한 환경 변수 로드
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env.local'))
 ngrok_token = os.getenv('NGROK_AUTH_TOKEN_higan')
 
-@app.route('/run-higan', methods=['POST'])
-def run_higan():
+# --- 백그라운드 실행용 워커 함수 ---
+def background_run_higan(task_id):
     try:
+        tasks[task_id]['status'] = 'processing'
+        
         # Execute the higan-code.py script
         script_path = os.path.join(os.path.dirname(__file__), "higan-code.py")
         print(f"Executing script at: {script_path}")
@@ -28,11 +36,48 @@ def run_higan():
         )
         
         if result.returncode != 0:
-            return jsonify({"error": result.stderr}), 500
-        return jsonify({"message": "Higan script executed successfully", "output": result.stdout}), 200
+            tasks[task_id].update({
+                'status': 'failed',
+                'error': result.stderr
+            })
+        else:
+            tasks[task_id].update({
+                'status': 'completed',
+                'result': {
+                    "message": "Higan script executed successfully",
+                    "output": result.stdout
+                }
+            })
+            
     except Exception as e:
-        print(f"Unexpected error: {e}")
-        return jsonify({"error": str(e)}), 500
+        print(f"Unexpected worker error: {e}")
+        tasks[task_id].update({
+            'status': 'failed',
+            'error': str(e)
+        })
+
+@app.route('/run-higan', methods=['POST'])
+def run_higan():
+    # 새로운 작업 ID 생성
+    task_id = str(uuid.uuid4())
+    tasks[task_id] = {'status': 'queued'}
+    
+    # 백그라운드 스레드에서 작업 시작
+    executor.submit(background_run_higan, task_id)
+    
+    # 클라이언트에게 즉시 task_id 반환
+    return jsonify({
+        "message": "Higan script execution started",
+        "task_id": task_id
+    }), 202
+
+# 작업 상태를 확인하는 엔드포인트 추가
+@app.route('/task_status/<task_id>', methods=['GET'])
+def get_task_status(task_id):
+    task = tasks.get(task_id)
+    if not task:
+        return jsonify({"error": "Task not found"}), 404
+    return jsonify(task), 200
 
 # 로컬에서 실행할 때
 # if __name__ == '__main__':
