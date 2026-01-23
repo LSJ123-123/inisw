@@ -299,7 +299,10 @@ def background_generate_mask(task_id, data):
 
         filename = image_url.split('-')[-1]
         s3_prefix = get_s3_key_prefix(filename, reference_url)
-        s3_key = f"{s3_prefix}{os.path.relpath(mask_path, start=os.path.dirname(output_dir)).replace('\\', '/')}"
+        parent_dir = os.path.dirname(output_dir)
+        relative_path = os.path.relpath(mask_path, start=parent_dir)
+        relative_path_fixed = relative_path.replace('\\', '/')
+        s3_key = f"{s3_prefix}{relative_path_fixed}"
         s3_mask_url = upload_file_to_s3(mask_path, s3_key)
 
         tasks[task_id].update({
