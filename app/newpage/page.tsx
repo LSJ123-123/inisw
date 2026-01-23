@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 // 환경 변수 사용
-const NGROK_URL = process.env.NGROK_URL_higan; 
+const NGROK_URL = process.env.NEXT_PUBLIC_NGROK_URL_higan; 
 
 interface Image {
     image_name: string;
