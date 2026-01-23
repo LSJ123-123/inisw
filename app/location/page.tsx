@@ -5,7 +5,7 @@ import Navbar from "@/components/Navbar";
 import { useRouter } from "next/navigation";
 
 // ngrok 주소 설정 (환경 변수 사용)
-const NGROK_URL = process.env.NEXT_PUBLIC_NGROK_URL_diffusion;
+const NGROK_URL = process.env.NGROK_URL_diffusion;
 
 const LocationPage = () => {
     const router = useRouter();
